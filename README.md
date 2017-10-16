@@ -3,8 +3,8 @@
 ![overview](./png/when2ventilate_all.png "overview")
 
 - This is a project for ESP32 with SSD1306 OLED modules(Heltec WIFI_KIT_32).
-- MH-Z19B(CO2 sensor) is required to build this whole project. (get it from ebay or amazon approximately US$20.)
-- MH-Z19B can be connected to micro controller in two way. PWM or Serial. I chose Serial.
+- MH-Z19B(CO2 sensor) is required to build this whole project. (get it from ebay or amazon. it's approximately US$20.)
+- MH-Z19B can be connected to micro controller in two ways, "PWM" or "Serial". I chose "Serial".
 
 |IO pin | Selected feature |
 |-------|-----------|
