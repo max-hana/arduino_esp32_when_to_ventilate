@@ -1,20 +1,13 @@
-/*********************************************************************
-This is an example for our Monochrome OLEDs based on SSD1306 drivers
-
-  Pick one up today in the adafruit shop!
-  ------> http://www.adafruit.com/category/63_98
-
-This example is for a 128x64 size display using I2C to communicate
-3 pins are required to interface (2 I2C and one reset)
-
-Adafruit invests time and resources providing this open source code, 
-please support Adafruit and open-source hardware by purchasing 
-products from Adafruit!
-
-Written by Limor Fried/Ladyada  for Adafruit Industries.  
-BSD license, check license.txt for more information
-All text above, and the splash screen must be included in any redistribution
-*********************************************************************/
+/*
+ * Project name : arduino_esp32_when_to_ventilate
+ * Arduino IDE's board selection:
+ *            "Heltec_WIFI_kit_32", "80MHz", "115200"
+ * 
+ * This source code follows Adafruit SSD1306 examples.
+ *            
+ * by Max-hana / Oct.2017
+ * 
+ */
 
 #include <SPI.h>
 #include <Wire.h>
@@ -23,7 +16,8 @@ All text above, and the splash screen must be included in any redistribution
 
 
 #define OLED_RESET 16 // 4
-Adafruit_SSD1306 display(OLED_RESET);
+//Adafruit_SSD1306 display(OLED_RESET);
+Adafruit_SSD1306 display(-1);
 
 HardwareSerial Serial2(2);
 
@@ -96,12 +90,28 @@ char buf_co2[20];
 int i_co2=0;
 int val_co2=-1;
 
+/*
+ * int send_CO2();
+ *    send GET_STATUS command to MH-Z19B
+ *    
+ *    return 0 ... could 
+ */
+int send_CO2(){
+  const byte a[] = {0xff, 0x01, 0x86, 0x00, 0x00, 0x00, 0x00, 0x00, 0x79 };
+  while(Serial2.available() > 0){
+    Serial2.read();
+  }
+  i_co2 = 0;
+  if (0==i_co2){
+    Serial2.write(a,9);
+    return 1;
+  }else{
+    return 0;
+  }
+}
+
 int fetch_CO2(){
   static int count = 10;
-  const byte a[] = {0xff, 0x01, 0x86, 0x00, 0x00, 0x00, 0x00, 0x00, 0x79 };
-  if (0==i_co2 && 0 > count){
-    Serial2.write(a,9);
-  }
   if (Serial2.available() > 0) {
     count = 10;
     // read the incoming byte:
@@ -109,17 +119,23 @@ int fetch_CO2(){
     buf_co2[i_co2++] = in;
     if( (1 == i_co2) && (0xff != buf_co2[0]) ){
       i_co2 = 0;
-    }
-    if( (2 == i_co2) && (0x86 != buf_co2[1]) ){
-      i_co2 = 0;
-    }
-    if( 4 == i_co2 ){
+    }else if( (2 == i_co2) && (0x86 != buf_co2[1]) ){
+      if ( 0xff == buf_co2[1] )
+        i_co2 = 1;
+      else
+        i_co2 = 0;
+    }else if( 4 == i_co2 ){
       val_co2 = buf_co2[2]*256 + buf_co2[3];
+    }else if( 9 <= i_co2 ){
       i_co2 = 0;
     }
+    Serial.print("i_co2=");
+    Serial.print(i_co2,DEC);
+    Serial.print("\n");
   }else{
     --count;
-    delay(100);
+    if(count < 0)
+      delay(100);
   }
   return val_co2;
 }
@@ -133,6 +149,8 @@ void show_CO2(int ppm) {
 
   display.print("CO2:");
   display.print(ppm, DEC);
+  display.setTextSize(1);
+  display.setCursor(100,7);
   display.println("ppm");
 
   display.display();
@@ -143,8 +161,9 @@ void loop() {
   static int loop_count=0;
 
   if( loop_count < 100 ){
-
     if( 0 == loop_count ){
+      delay(10);
+      send_CO2();
       delay(10);
     }else if( 30 > loop_count ){
       fetch_CO2();
